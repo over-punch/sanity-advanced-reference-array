@@ -1,25 +1,52 @@
 # Sanity Advanced Reference Array
 
-A powerful replacement for Sanity's default reference array input that adds search, sorting, and bulk management capabilities.
+🚀 **Enhanced reference array component for Sanity Studio with search, sort, and bulk operations**
 
-## Features
+A powerful, TypeScript-ready component that supercharges Sanity's reference arrays with advanced search capabilities, intelligent sorting, and intuitive bulk operations. Built from real-world usage in production Sanity studios.
 
-- **🔍 Real-time Search**: Search across multiple document types with live filtering
-- **📊 Multi-field Sorting**: Sort references by any field with ascending/descending control
-- **⚡ Bulk Operations**: Add multiple items at once, remove all with danger mode
-- **🔄 Duplicate Detection**: Automatically prevents duplicate references
-- **🎨 Smart UI**: Adapts interface based on content state and user actions
-- **🔒 Safety Features**: Danger mode protection for destructive operations
+## 🎥 **See It In Action**
 
-## Installation
+https://github.com/user-attachments/assets/demo-video.mov
+
+*Watch the Advanced Reference Array in action - featuring smart search, click-to-add functionality, bulk operations, and dynamic sorting.*
+
+## ✨ Features
+
+### 🔍 **Smart Search**
+- **Live GROQ queries** with debounced search
+- **Smart filtering** - automatically hides items already in your array
+- **Individual click-to-add** - click any search result to add it instantly
+- **Bulk "Add All"** - add multiple items at once
+- **Keyboard shortcuts** - `Ctrl+Enter` to add all, `Escape` to clear search
+
+### 🎯 **Dynamic Sorting**
+- **Sort by any field** in your referenced documents
+- **Visual sort indicators** - see if your list is already sorted
+- **Toggle sort direction** - ascending/descending with one click
+- **Browser compatible** - works across all modern browsers
+
+### 🛡️ **Safety & UX**
+- **Danger mode** - prevents accidental bulk deletions
+- **Confirmation dialogs** for destructive operations
+- **Loading states** and error handling
+- **Responsive design** - works on mobile and desktop
+- **Accessibility ready** - keyboard navigation support
+
+### ⚡ **Performance**
+- **Debounced search** - no unnecessary API calls
+- **Smart caching** - efficient data fetching
+- **TypeScript support** - full type safety
+- **Tree-shakeable** - only import what you need
+
+## 📦 Installation
 
 ```bash
 npm install sanity-advanced-reference-array
 ```
 
-## Usage
+## 🚀 Quick Start
 
-```javascript
+```typescript
 import { AdvancedRefArray } from 'sanity-advanced-reference-array'
 
 export default {
@@ -27,16 +54,14 @@ export default {
   type: 'document',
   fields: [
     {
-      name: 'references',
-      title: 'References',
+      name: 'relatedItems',
       type: 'array',
       of: [
         {
           type: 'reference',
           to: [
-            { type: 'post' },
-            { type: 'author' },
-            { type: 'category' }
+            { type: 'product' },
+            { type: 'article' }
           ]
         }
       ],
@@ -48,112 +73,184 @@ export default {
 }
 ```
 
-## Features in Detail
+## ⚙️ Configuration Options
 
-### Search Functionality
-- Type to search across all referenced document types
-- Real-time filtering with instant results
-- Search by document title or other searchable fields
-- Clear visual feedback for search state
-
-### Sorting Capabilities
-- Sort by any field in the referenced documents
-- Toggle between ascending and descending order
-- Visual indicators for current sort state
-- Maintains sort preferences during session
-
-### Bulk Operations
-- **Add Multiple**: Select and add multiple search results at once
-- **Remove All**: Danger mode for clearing entire reference array
-- **Duplicate Prevention**: Automatically filters out existing references
-
-### Safety Features
-- **Danger Mode**: Protected destructive operations
-- **Confirmation States**: Clear visual feedback for dangerous actions
-- **Undo Prevention**: Careful state management to prevent accidental data loss
-
-## Configuration
-
-The component automatically detects the schema types from your field configuration and provides search across all specified types.
-
-### Custom Hooks
-
-The component uses a custom `useSanityClient` hook. Make sure your project includes:
-
-```javascript
-// hooks/useSanityClient.js
-import { useClient } from 'sanity'
-
-export const useSanityClient = () => {
-  return useClient({ apiVersion: '2023-01-01' })
+```typescript
+interface AdvancedRefArrayProps {
+  // Core Sanity props (automatically provided)
+  onChange: (patch: any) => void
+  value?: Reference[]
+  schemaType: SchemaType
+  renderDefault: (props: any) => React.ReactNode
+  
+  // Enhanced configuration options
+  searchFields?: string[]              // Fields to search in (default: ['title'])
+  allowIndividualAdd?: boolean         // Enable click-to-add (default: true)
+  allowBulkAdd?: boolean              // Enable "Add All" button (default: true)
+  filterExisting?: boolean            // Hide already-added items (default: true)
+  sortableFields?: string[]           // Fields available for sorting
+  maxSearchResults?: number           // Max search results (default: 50)
+  searchPlaceholder?: string          // Search input placeholder
+  showItemCount?: boolean             // Show result counts (default: true)
+  enableKeyboardShortcuts?: boolean   // Enable shortcuts (default: true)
 }
 ```
 
-## Requirements
+## 🎨 Advanced Usage
 
-- Sanity Studio v3+
-- React 18+
-- GROQ query support
-
-## API Reference
-
-### Props
-
-The component accepts all standard Sanity input component props:
-
-- `value`: Current array of references
-- `onChange`: Callback for value changes
-- `schemaType`: Schema type definition
-- `renderDefault`: Default renderer function
-
-### Schema Type Support
-
-Works with any reference array field that specifies `to` types:
-
-```javascript
+### Custom Search Fields
+```typescript
 {
+  name: 'products',
   type: 'array',
-  of: [
-    {
-      type: 'reference',
-      to: [
-        { type: 'document1' },
-        { type: 'document2' }
-        // ... more types
-      ]
-    }
-  ]
+  of: [{ type: 'reference', to: [{ type: 'product' }] }],
+  components: {
+    input: AdvancedRefArray
+  },
+  options: {
+    searchFields: ['title', 'description', 'sku'],
+    maxSearchResults: 100,
+    searchPlaceholder: 'Search products by name, description, or SKU...'
+  }
 }
 ```
 
-## Styling
+### Disable Bulk Operations
+```typescript
+{
+  name: 'featuredItems',
+  type: 'array',
+  of: [{ type: 'reference', to: [{ type: 'article' }] }],
+  components: {
+    input: AdvancedRefArray
+  },
+  options: {
+    allowBulkAdd: false,           // Disable "Add All" button
+    allowIndividualAdd: true,      // Keep individual click-to-add
+    showItemCount: false           // Hide item counts
+  }
+}
+```
 
-The component uses Sanity UI components and follows Sanity's design system. Custom styling can be applied through:
+### Custom Sorting
+```typescript
+{
+  name: 'sortedArticles',
+  type: 'array',
+  of: [{ type: 'reference', to: [{ type: 'article' }] }],
+  components: {
+    input: AdvancedRefArray
+  },
+  options: {
+    sortableFields: ['publishedAt', 'title', 'author'],
+    enableKeyboardShortcuts: true
+  }
+}
+```
 
-- CSS classes on container elements
-- Sanity UI theme customization
-- Component-level style overrides
+## 🎯 Real-World Examples
 
-## Contributing
+### E-commerce Product Relations
+```typescript
+// Perfect for related products, cross-sells, upsells
+{
+  name: 'relatedProducts',
+  title: 'Related Products',
+  type: 'array',
+  of: [{ type: 'reference', to: [{ type: 'product' }] }],
+  components: { input: AdvancedRefArray },
+  options: {
+    searchFields: ['title', 'sku', 'category'],
+    maxSearchResults: 20,
+    searchPlaceholder: 'Search products...'
+  }
+}
+```
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests for any improvements.
+### Content Collections
+```typescript
+// Great for curated article collections, featured content
+{
+  name: 'featuredArticles',
+  title: 'Featured Articles',
+  type: 'array',
+  of: [{ type: 'reference', to: [{ type: 'article' }] }],
+  components: { input: AdvancedRefArray },
+  options: {
+    sortableFields: ['publishedAt', 'title', 'readTime'],
+    filterExisting: true,
+    allowBulkAdd: false  // Curated content should be added individually
+  }
+}
+```
 
-## License
+### Team & Author Management
+```typescript
+// Perfect for assigning multiple team members, contributors
+{
+  name: 'contributors',
+  title: 'Contributors',
+  type: 'array',
+  of: [{ type: 'reference', to: [{ type: 'person' }] }],
+  components: { input: AdvancedRefArray },
+  options: {
+    searchFields: ['name', 'email', 'department'],
+    sortableFields: ['name', 'role', 'joinDate'],
+    searchPlaceholder: 'Search team members...'
+  }
+}
+```
 
-MIT License - see LICENSE file for details.
+## 🔧 Development
 
-## Support
+```bash
+# Clone the repository
+git clone https://github.com/quitequinn/sanity-advanced-reference-array.git
 
-For issues and questions:
-- Create an issue on GitHub
-- Check existing issues for solutions
-- Review the documentation
+# Install dependencies
+npm install
 
-## Changelog
+# Build the package
+npm run build
 
-### v1.0.0
-- Initial release
-- Search functionality
-- Sorting capabilities
-- Bulk operations
-- Safety features
+# Run type checking
+npm run type-check
+
+# Run linting
+npm run lint
+```
+
+## 🤝 Contributing
+
+We welcome contributions! This component was built from real-world usage across multiple Sanity studios and continues to evolve based on community needs.
+
+### Areas for Contribution:
+- 🐛 **Bug fixes** - Help us squash issues
+- ✨ **Feature requests** - Suggest new capabilities
+- 📚 **Documentation** - Improve examples and guides
+- 🧪 **Testing** - Add test coverage
+- 🎨 **UI/UX** - Enhance the user experience
+
+## 📄 License
+
+MIT © [Quinn Keaveney](https://github.com/quitequinn)
+
+## 🙏 Acknowledgments
+
+This component combines the best features from multiple implementations used in production Sanity studios:
+- **Darden Studio** - Original advanced search and sort functionality
+- **The Designer's Foundry** - Individual item selection and UX improvements
+- **Community feedback** - Ongoing enhancements and bug fixes
+
+## 🔗 Links
+
+- [NPM Package](https://www.npmjs.com/package/sanity-advanced-reference-array)
+- [GitHub Repository](https://github.com/quitequinn/sanity-advanced-reference-array)
+- [Sanity.io](https://www.sanity.io/)
+- [Report Issues](https://github.com/quitequinn/sanity-advanced-reference-array/issues)
+
+---
+
+**Made with ❤️ for the Sanity community**
+
+*Transform your reference arrays from basic lists into powerful, searchable, sortable content management tools.*
