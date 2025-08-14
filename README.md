@@ -6,7 +6,7 @@ A powerful, TypeScript-ready component that supercharges Sanity's reference arra
 
 ## 🎥 **See It In Action**
 
-https://github.com/quitequinn/sanity-advanced-reference-array/raw/main/demo-video.mov
+https://github.com/quitequinn/sanity-advanced-reference-array/raw/main/demo-video.mp4
 
 *Watch the Advanced Reference Array in action - featuring smart search, click-to-add functionality, bulk operations, and dynamic sorting.*
 

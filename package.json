@@ -8,7 +8,7 @@
   "files": [
     "dist",
     "src",
-    "demo-video.mov"
+    "demo-video.mp4"
   ],
   "scripts": {
     "build": "rollup -c",
