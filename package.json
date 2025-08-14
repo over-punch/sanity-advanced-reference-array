@@ -1,6 +1,6 @@
 {
   "name": "sanity-advanced-reference-array",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enhanced reference array component for Sanity Studio with search, sort, and bulk operations",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
