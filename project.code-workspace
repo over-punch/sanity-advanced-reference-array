@@ -1,0 +1,92 @@
+{
+	"folders": [
+		{
+			"name": "Sanity Advanced Reference Array",
+			"path": "."
+		}
+	],
+	"settings": {
+		"typescript.preferences.importModuleSpecifier": "relative",
+		"typescript.suggest.autoImports": true,
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": "explicit"
+		},
+		"files.exclude": {
+			"**/node_modules": true,
+			"**/dist": false,
+			"**/.git": true
+		},
+		"search.exclude": {
+			"**/node_modules": true,
+			"**/dist": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-vscode.vscode-typescript-next",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode",
+			"bradlc.vscode-tailwindcss"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Build",
+				"type": "npm",
+				"script": "build",
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				},
+				"problemMatcher": ["$tsc"]
+			},
+			{
+				"label": "Dev",
+				"type": "npm",
+				"script": "dev",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				},
+				"problemMatcher": ["$tsc-watch"]
+			},
+			{
+				"label": "Type Check",
+				"type": "npm",
+				"script": "type-check",
+				"group": "test",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				},
+				"problemMatcher": ["$tsc"]
+			},
+			{
+				"label": "Lint",
+				"type": "npm",
+				"script": "lint",
+				"group": "test",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			}
+		]
+	}
+}
