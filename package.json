@@ -31,12 +31,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/quitequinn/sanity-advanced-reference-array.git"
+    "url": "https://github.com/Liiift-Studio/sanity-advanced-reference-array.git"
   },
   "bugs": {
-    "url": "https://github.com/quitequinn/sanity-advanced-reference-array/issues"
+    "url": "https://github.com/Liiift-Studio/sanity-advanced-reference-array/issues"
   },
-  "homepage": "https://github.com/quitequinn/sanity-advanced-reference-array#readme",
+  "homepage": "https://github.com/Liiift-Studio/sanity-advanced-reference-array#readme",
   "peerDependencies": {
     "@sanity/ui": "^1.0.0",
     "react": "^18.0.0",
