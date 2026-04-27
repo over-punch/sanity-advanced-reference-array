@@ -10,6 +10,7 @@ export default {
   input: 'src/index.ts',
   external: [
     'react',
+    'react/jsx-runtime',
     'react-dom',
     'sanity',
     '@sanity/ui',
