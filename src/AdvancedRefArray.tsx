@@ -1,41 +1,15 @@
 /**
  * AdvancedRefArray.tsx - Enhanced Sanity input component for managing arrays of references
- * 
- * This component provides an advanced interface for managing reference arrays in Sanity schemas,
- * combining the best features from multiple implementations with enhanced UX and TypeScript support.
- * 
- * Features:
- * - Advanced search with live GROQ queries
- * - Individual item selection (click-to-add)
- * - Bulk operations with safety controls
- * - Smart filtering of existing items
- * - Dynamic sorting by any document field
- * - Comprehensive error handling
- * - TypeScript support with proper types
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { set, unset } from 'sanity'
-import { useFormValue } from 'sanity'
-
-// UI Components
-import { Text, TextInput, Stack, Grid, Button, Select, Spinner, Flex } from '@sanity/ui'
-import {
-	AddIcon,
-	DashboardIcon,
-	TrashIcon,
-	LockIcon,
-	UnlockIcon,
-	AccessDeniedIcon,
-	SortIcon,
-	EditIcon,
-	UploadIcon
-} from '@sanity/icons'
-
-// Custom hooks
+import { Text, TextInput, Stack, Button, Select, Spinner } from '@sanity/ui'
+import { AccessDeniedIcon, SortIcon, LockIcon } from '@sanity/icons'
 import { useSanityClient } from './hooks/useSanityClient'
 
-// Types
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Reference {
 	_type: string
 	_key: string
@@ -61,33 +35,31 @@ interface AdvancedRefArrayProps {
 	schemaType: SchemaType
 	id: string
 	renderDefault: (props: any) => React.ReactNode
-	
-	// Enhanced configuration options
-	searchFields?: string[]
 	allowIndividualAdd?: boolean
 	allowBulkAdd?: boolean
 	filterExisting?: boolean
-	sortableFields?: string[]
 	maxSearchResults?: number
 	searchPlaceholder?: string
 	showItemCount?: boolean
 	enableKeyboardShortcuts?: boolean
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const client = useSanityClient()
-	const { 
-		onChange, 
+	const {
+		onChange,
 		value,
-		searchPlaceholder = "Find items to add...",
+		searchPlaceholder = 'Find items to add...',
 		allowIndividualAdd = true,
 		allowBulkAdd = true,
 		filterExisting = true,
 		maxSearchResults = 50,
 		showItemCount = true,
-		enableKeyboardShortcuts = true
+		enableKeyboardShortcuts = true,
 	} = props
-	// Component states
+
 	const [dangerMode, setDangerMode] = useState(false)
 	const [findValue, setFindValue] = useState('')
 	const [findData, setFindData] = useState<SearchResult[]>([])
@@ -100,64 +72,69 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const [error, setError] = useState<string | null>(null)
 	const [isInputFocused, setIsInputFocused] = useState(false)
 
-	// Memoize schema types — a new array reference every render would cause searchForItems
-	// to be recreated every render, retriggering the debounced effect infinitely
-	const schemaTypes = useMemo(() => {
-		const types: string[] = []
-		props.schemaType.of.forEach((type) => {
-			type.to.forEach((toType) => {
-				types.push(toType.name)
-			})
-		})
-		return types
-	}, [props.schemaType])
+	// Refs that always hold the latest values — used inside the debounced search
+	// so the effect never needs to re-run due to prop/state changes other than findValue
+	const latestRef = useRef({ client, value, filterExisting, maxSearchResults, schemaType: props.schemaType })
+	useEffect(() => {
+		latestRef.current = { client, value, filterExisting, maxSearchResults, schemaType: props.schemaType }
+	})
 
-	/**
-	 * Searches for items matching the search value within allowed schema types
-	 * Enhanced with smart filtering and error handling
-	 */
-	const searchForItems = useCallback(async (searchValue: string) => {
-		if (!searchValue.trim() || !schemaTypes?.length) {
+	// ─── Search — only re-fires when the query text changes ──────────────────
+
+	useEffect(() => {
+		if (!findValue.trim()) {
 			setFindData([])
+			setIsSearching(false)
 			return
 		}
 
-		setIsSearching(true)
+		let cancelled = false
 		setError(null)
 
-		try {
-			const items = await client.fetch<SearchResult[]>(
-				`*[_type in $types && title match $search][0...$limit]`,
-				{ types: schemaTypes, search: `${searchValue}*`, limit: maxSearchResults }
-			)
+		const timeoutId = setTimeout(async () => {
+			if (cancelled) return
+			setIsSearching(true)
 
-			// Smart filtering: remove items that already exist in the reference array
-			const filteredItems = filterExisting && value?.length 
-				? items.filter(item => !value.some(ref => ref._ref === item._id))
-				: items
+			const { client, value, filterExisting, maxSearchResults, schemaType } = latestRef.current
 
-			setFindData(filteredItems)
-		} catch (err) {
-			console.error('Search error:', err)
-			setError('Failed to search items. Please try again.')
-			setFindData([])
-		} finally {
-			setIsSearching(false)
+			const schemaTypes: string[] = []
+			schemaType.of.forEach((type) => type.to.forEach((t) => schemaTypes.push(t.name)))
+
+			if (!schemaTypes.length) {
+				setIsSearching(false)
+				return
+			}
+
+			try {
+				const items = await client.fetch<SearchResult[]>(
+					`*[_type in $types && title match $search][0...$limit]`,
+					{ types: schemaTypes, search: `${findValue}*`, limit: maxSearchResults }
+				)
+				if (cancelled) return
+
+				const filtered = filterExisting && value?.length
+					? items.filter(item => !value.some(ref => ref._ref === item._id))
+					: items
+				setFindData(filtered)
+			} catch (err) {
+				if (cancelled) return
+				console.error('Search error:', err)
+				setError('Failed to search items. Please try again.')
+				setFindData([])
+			} finally {
+				if (!cancelled) setIsSearching(false)
+			}
+		}, 300)
+
+		return () => {
+			cancelled = true
+			clearTimeout(timeoutId)
 		}
-	}, [client, schemaTypes, maxSearchResults, filterExisting, value])
+	}, [findValue])
 
-	// Debounced search effect
-	useEffect(() => {
-		const timeoutId = setTimeout(() => {
-			searchForItems(findValue)
-		}, 300) // 300ms debounce
+	// ─── Reference mutations ──────────────────────────────────────────────────
 
-		return () => clearTimeout(timeoutId)
-	}, [findValue, searchForItems])
-
-	/**
-	 * Removes all references from the array with confirmation
-	 */
+	/** Removes all references after confirmation */
 	const deleteAllReferences = useCallback((e: React.MouseEvent) => {
 		e.preventDefault()
 		if (window.confirm('Are you sure you want to remove all references? This action cannot be undone.')) {
@@ -166,463 +143,260 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 		}
 	}, [onChange])
 
-	/**
-	 * Adds all search results as references to the array
-	 */
+	/** Adds all current search results as references */
 	const addAllReferences = useCallback(() => {
 		if (!findData?.length) return
-
 		let newValues = value?.length ? [...value] : []
-		const newReferences = findData.map((item) => ({
+		const newRefs = findData.map((item) => ({
 			_type: 'reference' as const,
 			_key: Math.random().toString(36).substr(2, 9),
 			_ref: item._id,
-			_weak: true
+			_weak: true,
 		}))
-
-		newValues = [...newValues, ...newReferences]
-		
-		// Remove duplicates by _ref (safety check)
-		newValues = newValues.filter((ref, index, self) =>
-			self.findIndex((t) => t._ref === ref._ref) === index
+		newValues = [...newValues, ...newRefs].filter(
+			(ref, i, self) => self.findIndex(t => t._ref === ref._ref) === i
 		)
-
 		onChange(set(newValues))
 		setFindValue('')
 	}, [findData, value, onChange])
 
-	/**
-	 * Adds a single item as a reference to the array
-	 * Enhanced from TDF version with better UX
-	 */
+	/** Adds a single item as a reference */
 	const addSingleReference = useCallback((item: SearchResult) => {
 		if (!item?._id) return
-
-		let newValues = value?.length ? [...value] : []
-		
-		// Check if this reference already exists
-		const exists = newValues.some(val => val._ref === item._id)
-		if (exists) return
-
-		const newReference: Reference = {
-			_type: 'reference',
-			_key: Math.random().toString(36).substr(2, 9),
-			_ref: item._id,
-			_weak: true
-		}
-
-		newValues = [...newValues, newReference]
+		const newValues = value?.length ? [...value] : []
+		if (newValues.some(val => val._ref === item._id)) return
+		newValues.push({ _type: 'reference', _key: Math.random().toString(36).substr(2, 9), _ref: item._id, _weak: true })
 		onChange(set(newValues))
-
-		// Remove the added item from search results for better UX
-		setFindData(prev => prev.filter(searchItem => searchItem._id !== item._id))
+		setFindData(prev => prev.filter(r => r._id !== item._id))
 	}, [value, onChange])
 
-	// Sort functionality with enhanced error handling
-	useEffect(() => {
-		if (sortMode) {
-			updateDataList()
-		}
-	}, [sortMode])
+	// ─── Sort ─────────────────────────────────────────────────────────────────
 
-	/**
-	 * Updates the list of available fields for sorting
-	 */
-	const updateDataList = async () => {
-		if (!sortMode || !value?.length) return
-
-		try {
-			const expandedValues = await getSortData()
-			if (expandedValues && expandedValues.length > 0) {
-				const keys = Object.keys(expandedValues[0])
-					.filter(key => !key.startsWith('_')) // Filter out internal fields
-					.sort()
-				
-				if (keys.length > 0) {
-					setSortDataType(keys[0])
-					setSortDataList(keys)
-					await checkAlreadySorted()
-				}
-			}
-		} catch (err) {
-			console.error('Error updating sort data:', err)
-			setError('Failed to load sorting options.')
-		}
-	}
-
-	/**
-	 * Checks if the current array is already sorted by the selected field
-	 * Enhanced with better browser compatibility
-	 */
-	const checkAlreadySorted = async () => {
-		try {
-			const expandedRefs = await getSortData()
-			if (!expandedRefs || expandedRefs.length === 0) return
-
-			// Use Array.sort() instead of toSorted() for better compatibility
-			const sortedRefs = [...expandedRefs].sort((a: any, b: any) => {
-				const aValue = a[sortDataType]
-				const bValue = b[sortDataType]
-
-				// Handle null/undefined values
-				if (aValue == null && bValue == null) return 0
-				if (aValue == null) return 1
-				if (bValue == null) return -1
-
-				// String comparison
-				if (typeof aValue === 'string' && typeof bValue === 'string') {
-					return aValue.localeCompare(bValue)
-				}
-
-				// Numeric comparison
-				if (aValue < bValue) return -1
-				if (aValue > bValue) return 1
-				return 0
-			})
-
-			setAlreadySorted(JSON.stringify(sortedRefs) === JSON.stringify(expandedRefs))
-		} catch (err) {
-			console.error('Error checking sort status:', err)
-		}
-	}
-
-	/**
-	 * Fetches expanded documents for the current reference array, preserving current order
-	 */
-	const getSortData = async (): Promise<any[]> => {
+	const getSortData = useCallback(async (): Promise<any[]> => {
 		if (!value?.length) return []
 		try {
 			const ids = value.map(ref => ref._ref).filter(Boolean)
 			const docs = await client.fetch(`*[_id in $ids]`, { ids })
-			return value
-				.map(ref => docs.find((d: any) => d._id === ref._ref))
-				.filter(Boolean)
-		} catch (error) {
-			console.error('Error fetching sort data:', error)
+			return value.map(ref => docs.find((d: any) => d._id === ref._ref)).filter(Boolean)
+		} catch (err) {
+			console.error('Error fetching sort data:', err)
 			return []
 		}
-	}
+	}, [client, value])
 
-	/**
-	 * Sorts all references by the selected field
-	 * Enhanced with better error handling and UX feedback
-	 */
-	const sortAllReferences = async () => {
+	const checkAlreadySorted = useCallback(async (field: string) => {
+		const refs = await getSortData()
+		if (!refs.length) return
+		const sorted = [...refs].sort((a, b) => {
+			const av = a[field]; const bv = b[field]
+			if (av == null && bv == null) return 0
+			if (av == null) return 1
+			if (bv == null) return -1
+			return typeof av === 'string' && typeof bv === 'string' ? av.localeCompare(bv) : av < bv ? -1 : av > bv ? 1 : 0
+		})
+		setAlreadySorted(JSON.stringify(sorted) === JSON.stringify(refs))
+	}, [getSortData])
+
+	useEffect(() => {
+		if (!sortMode || !value?.length) return
+		getSortData().then(expanded => {
+			if (!expanded.length) return
+			const keys = Object.keys(expanded[0]).filter(k => !k.startsWith('_')).sort()
+			if (keys.length) {
+				setSortDataType(keys[0])
+				setSortDataList(keys)
+				checkAlreadySorted(keys[0])
+			}
+		}).catch(err => {
+			console.error('Error updating sort data:', err)
+			setError('Failed to load sorting options.')
+		})
+	}, [sortMode])
+
+	const sortAllReferences = useCallback(async () => {
 		if (!value?.length || !sortDataType) return
-
 		setIsSorting(true)
 		setError(null)
-
 		try {
-			const curRefs = [...value]
-			const expandedRefs = await getSortData()
-
-			if (!expandedRefs || expandedRefs.length === 0) {
-				setError('No data available for sorting.')
-				return
-			}
-
-			// Enhanced sorting with proper error handling
-			const sortedRefs = [...expandedRefs].sort((a: any, b: any) => {
-				const aValue = a[sortDataType]
-				const bValue = b[sortDataType]
-
-				// Handle null/undefined values
-				if (aValue == null && bValue == null) return 0
-				if (aValue == null) return 1
-				if (bValue == null) return -1
-
-				// Determine sort direction
-				const direction = alreadySorted ? -1 : 1
-
-				// String comparison
-				if (typeof aValue === 'string' && typeof bValue === 'string') {
-					return direction * aValue.localeCompare(bValue)
-				}
-
-				// Numeric comparison
-				if (aValue < bValue) return direction * -1
-				if (aValue > bValue) return direction * 1
-				return 0
+			const refs = await getSortData()
+			if (!refs.length) { setError('No data available for sorting.'); return }
+			const dir = alreadySorted ? -1 : 1
+			const sorted = [...refs].sort((a, b) => {
+				const av = a[sortDataType]; const bv = b[sortDataType]
+				if (av == null && bv == null) return 0
+				if (av == null) return dir
+				if (bv == null) return -dir
+				return typeof av === 'string' && typeof bv === 'string'
+					? dir * av.localeCompare(bv)
+					: av < bv ? -dir : av > bv ? dir : 0
 			})
-
-			// Create a map for faster lookup
-			const refMap = new Map()
-			curRefs.forEach(ref => {
-				refMap.set(ref._ref, ref)
-			})
-
-			// Reorganize references based on sorted order
-			const organizedRefs = sortedRefs
-				.map(doc => refMap.get(doc._id))
-				.filter(Boolean) // Remove any undefined values
-
-			await onChange(set(organizedRefs))
-
-			// Update sort status after a delay
-			setTimeout(() => {
-				checkAlreadySorted()
-			}, 1000)
-
+			const refMap = new Map(value.map(ref => [ref._ref, ref]))
+			onChange(set(sorted.map(doc => refMap.get(doc._id)).filter(Boolean)))
+			setTimeout(() => checkAlreadySorted(sortDataType), 1000)
 		} catch (err) {
-			console.error('Error sorting references:', err)
+			console.error('Error sorting:', err)
 			setError('Failed to sort references. Please try again.')
 		} finally {
 			setIsSorting(false)
 		}
-	}
+	}, [value, sortDataType, alreadySorted, getSortData, onChange, checkAlreadySorted])
 
-	// Keyboard shortcuts
+	// ─── Keyboard shortcuts ───────────────────────────────────────────────────
+
 	useEffect(() => {
 		if (!enableKeyboardShortcuts) return
-
-		const handleKeyDown = (e: KeyboardEvent) => {
+		const handler = (e: KeyboardEvent) => {
 			if (!isInputFocused) return
-			// Ctrl/Cmd + Enter to add all results
 			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && findData.length > 0) {
 				e.preventDefault()
 				addAllReferences()
 			}
-			// Escape to clear search
 			if (e.key === 'Escape' && findValue) {
 				e.preventDefault()
 				setFindValue('')
 			}
 		}
-
-		document.addEventListener('keydown', handleKeyDown)
-		return () => document.removeEventListener('keydown', handleKeyDown)
+		document.addEventListener('keydown', handler)
+		return () => document.removeEventListener('keydown', handler)
 	}, [enableKeyboardShortcuts, findData, findValue, addAllReferences, isInputFocused])
+
+	// ─── Derived state ────────────────────────────────────────────────────────
+
+	const hasItems = !!(value?.length)
+	const hasSearch = findValue !== ''
+	const hasResults = findData.length > 0
+	// Show sort+lock buttons: idle state with existing refs and no active search
+	const showIdleButtons = hasItems && !hasSearch && !dangerMode && !sortMode
+
+	// ─── Render ───────────────────────────────────────────────────────────────
 
 	return (
 		<Stack style={{ position: 'relative' }}>
-			{/* Error display */}
 			{error && (
-				<div style={{ 
-					padding: '8px 12px', 
-					backgroundColor: 'rgba(255, 0, 0, 0.1)', 
-					border: '1px solid rgba(255, 0, 0, 0.3)',
-					borderRadius: '4px',
-					marginBottom: '8px',
-					color: '#d32f2f'
-				}}>
+				<div style={{ padding: '8px 12px', backgroundColor: 'rgba(255,0,0,0.1)', border: '1px solid rgba(255,0,0,0.3)', borderRadius: 4, marginBottom: 8, color: '#d32f2f' }}>
 					{error}
 				</div>
 			)}
 
-			{/* Main control grid */}
-			<Grid
-				columns={!!(findValue === '' && value?.length) && (!dangerMode && !sortMode) ? 1 : (!findData?.length && !value?.length) || (findValue !== '' && !findData.length) ? 1 : 2}
-				style={{ zIndex: 1, position: 'relative' }}
-			>
+			{/* Control row — plain div so width is always 100% of parent */}
+			<div style={{ position: 'relative', display: 'flex', zIndex: 1 }}>
 				{sortMode ? (
 					<Select
-						style={{ borderRadius: '0 3px 0 0' }}
-						onChange={(event) => setSortDataType((event.target as HTMLSelectElement).value)}
+						style={{ flex: 1, borderRadius: '3px 3px 0 0' }}
+						onChange={(e) => { setSortDataType((e.target as HTMLSelectElement).value); checkAlreadySorted((e.target as HTMLSelectElement).value) }}
 						value={sortDataType}
 						disabled={isSorting}
 					>
-						{sortDataList.map((item, index) => (
-							<option key={`sort-${index}`} value={item}>{item}</option>
-						))}
+						{sortDataList.map((item, i) => <option key={i} value={item}>{item}</option>)}
 					</Select>
 				) : (
-					<Flex align="center" style={{ position: 'relative', flex: 1 }}>
+					<div style={{ position: 'relative', flex: 1 }}>
 						<TextInput
 							placeholder={searchPlaceholder}
 							value={findValue}
 							onChange={(e) => setFindValue((e.target as HTMLInputElement).value)}
 							onFocus={() => setIsInputFocused(true)}
 							onBlur={() => setIsInputFocused(false)}
-							style={{
-								width: '100%',
-								paddingRight: !!(findValue === '' && value?.length) && (!dangerMode && !sortMode) ? '104px' : undefined,
-							}}
-							disabled={isSearching}
+							style={{ width: '100%', paddingRight: showIdleButtons ? 104 : isSearching ? 32 : undefined }}
 						/>
 						{isSearching && (
-							<div style={{ position: 'absolute', right: '8px' }}>
+							<div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
 								<Spinner size={1} />
 							</div>
 						)}
-					</Flex>
+					</div>
 				)}
 
-				{/* Add buttons */}
-				{!!(findValue !== '' && findData.length) && (
-					<Flex gap={1}>
-						{allowBulkAdd && (
-							<Button 
-								text="Add All" 
-								tone="positive" 
-								onClick={addAllReferences}
-								style={{ borderRadius: '0 3px 0 0' }}
-								disabled={isSearching}
-							/>
-						)}
-					</Flex>
+				{/* Add All button — appears beside input when there are results */}
+				{hasSearch && hasResults && allowBulkAdd && (
+					<Button text="Add All" tone="positive" onClick={addAllReferences} disabled={isSearching} style={{ borderRadius: '0 3px 3px 0', flexShrink: 0 }} />
 				)}
 
-				{/* Empty state */}
-				{!!(findValue !== '' && !findData.length && !isSearching) && (
+				{/* Idle buttons — sort + lock, absolutely positioned over the right edge of input */}
+				{showIdleButtons && (
 					<>
-						<div style={{
-							maxHeight: '400px',
-							minHeight: '40px',
-							border: '1px solid rgba(255,255,255,0.1)',
-							overflow: 'auto',
-							marginTop: '-1px',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							color: 'rgba(255,255,255,0.5)'
-						}}>
-							No items found
-						</div>
-						{showItemCount && (
-							<div style={{ pointerEvents: 'none', textAlign: 'right', top: '-30px', paddingRight: '10px', position: 'relative', height: '0px' }}>
-								0 items
-							</div>
-						)}
+						<Button
+							mode="ghost"
+							tone="caution"
+							icon={SortIcon}
+							onClick={() => setSortMode(true)}
+							style={{ position: 'absolute', right: 50, top: 0, bottom: 0, width: 50, borderRadius: 0 }}
+						/>
+						<Button
+							mode="ghost"
+							tone="critical"
+							icon={LockIcon}
+							onClick={() => setDangerMode(true)}
+							style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 50, borderRadius: '0 3px 3px 0' }}
+						/>
 					</>
 				)}
 
-				{/* Action buttons for existing references */}
-				{!!(findValue === '' && value?.length) && (
-					dangerMode ? (
-						<>
-							<Button 
-								mode="ghost" 
-								text="Remove all" 
-								tone="critical" 
-								onClick={deleteAllReferences} 
-								style={{ paddingRight: '50px', borderRadius: '0 3px 0 0' }} 
-							/>
-							<Button 
-								tone="critical" 
-								icon={AccessDeniedIcon} 
-								onClick={() => { setDangerMode(false); setSortMode(false) }} 
-								style={{ position: 'absolute', right: '0', width: '50px', height: '100%', borderRadius: '0 3px 0 0' }}
-							/>
-						</>
-					) : sortMode ? (
-						<>
-							<Button 
-								mode="ghost" 
-								text={`Sort (${alreadySorted ? '↓' : '↑'})`} 
-								tone="caution" 
-								onClick={sortAllReferences}
-								disabled={isSorting || !sortDataType}
-								style={{ paddingRight: '50px', borderRadius: '0 3px 0 0' }} 
-							/>
-							<Button 
-								tone="caution" 
-								icon={AccessDeniedIcon} 
-								onClick={() => { setDangerMode(false); setSortMode(false) }} 
-								style={{ position: 'absolute', right: '0', width: '50px', height: '100%', borderRadius: '0 3px 0 0' }}
-							/>
-						</>
-					) : (
-						<>
-							<Button 
-								mode="ghost" 
-								tone="caution" 
-								icon={SortIcon} 
-								onClick={() => setSortMode(!sortMode)} 
-								style={{ position: 'absolute', right: '49px', width: '50px', height: '100%', borderRadius: '0 0 0 0' }}
-							/>
-							<Button 
-								mode="ghost" 
-								tone="critical" 
-								icon={LockIcon} 
-								onClick={() => setDangerMode(!dangerMode)} 
-								style={{ position: 'absolute', right: '0', width: '50px', height: '100%', borderRadius: '0 3px 0 0' }}
-							/>
-						</>
-					)
+				{/* Danger mode */}
+				{dangerMode && !sortMode && (
+					<>
+						<Button mode="ghost" text="Remove all" tone="critical" onClick={deleteAllReferences} style={{ flex: 1, paddingRight: 50 }} />
+						<Button tone="critical" icon={AccessDeniedIcon} onClick={() => setDangerMode(false)} style={{ flexShrink: 0, width: 50 }} />
+					</>
 				)}
-			</Grid>
+
+				{/* Sort mode action */}
+				{sortMode && (
+					<>
+						<Button
+							mode="ghost"
+							text={`Sort (${alreadySorted ? '↓' : '↑'})`}
+							tone="caution"
+							onClick={sortAllReferences}
+							disabled={isSorting || !sortDataType}
+							style={{ flexShrink: 0 }}
+						/>
+						<Button
+							tone="caution"
+							icon={AccessDeniedIcon}
+							onClick={() => { setSortMode(false); setDangerMode(false) }}
+							style={{ flexShrink: 0, width: 50 }}
+						/>
+					</>
+				)}
+			</div>
 
 			{/* Search results */}
-			<Grid columns={1} style={{ zIndex: 0 }}>
-				{!!(findValue !== '' && findData.length) && (
-					<>
-						<div style={{
-							maxHeight: '400px',
-							minHeight: '40px',
-							border: '1px solid rgba(255,255,255,0.1)',
-							overflow: 'auto',
-							marginTop: '-1px'
-						}}>
-							{findData.map((item, index) => (
+			{hasSearch && (
+				<div style={{ border: '1px solid rgba(255,255,255,0.1)', borderTop: 'none', borderRadius: '0 0 3px 3px', overflow: 'auto', maxHeight: 400 }}>
+					{isSearching && !hasResults ? (
+						<div style={{ padding: '8px 12px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Searching…</div>
+					) : !hasResults ? (
+						<div style={{ padding: '8px 12px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No items found</div>
+					) : (
+						<>
+							{findData.map((item, i) => (
 								<div
-									key={`search-result-${index}`}
-									className="link"
+									key={`result-${i}`}
 									onClick={() => allowIndividualAdd && addSingleReference(item)}
-									style={{
-										cursor: allowIndividualAdd ? 'pointer' : 'default',
-										padding: '8px 12px',
-										borderBottom: index < findData.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-										transition: 'background-color 0.2s ease',
-										...(allowIndividualAdd && {
-											':hover': {
-												backgroundColor: 'rgba(255,255,255,0.05)'
-											}
-										})
-									}}
-									onMouseEnter={(e) => {
-										if (allowIndividualAdd) {
-											e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (allowIndividualAdd) {
-											e.currentTarget.style.backgroundColor = 'transparent'
-										}
-									}}
+									onMouseEnter={(e) => { if (allowIndividualAdd) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+									onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+									style={{ padding: '8px 12px', cursor: allowIndividualAdd ? 'pointer' : 'default', borderBottom: i < findData.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
 								>
-									<Stack>
-										<Text size={1} style={{ padding: '0.5em 0' }}>
-											{item.title}
-											{allowIndividualAdd && (
-												<span style={{ 
-													opacity: 0.6, 
-													fontSize: '0.8em', 
-													marginLeft: '8px' 
-												}}>
-													(click to add)
-												</span>
-											)}
-										</Text>
-									</Stack>
+									<Text size={1}>
+										{item.title}
+										{allowIndividualAdd && <span style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: 8 }}>(click to add)</span>}
+									</Text>
 								</div>
 							))}
-						</div>
-						{showItemCount && (
-							<div style={{ 
-								pointerEvents: 'none', 
-								textAlign: 'right', 
-								top: '-30px', 
-								paddingRight: '10px', 
-								position: 'relative', 
-								height: '0px',
-								fontSize: '0.8em',
-								opacity: 0.7
-							}}>
-								{findData.length} item{findData.length !== 1 ? 's' : ''}
-								{enableKeyboardShortcuts && allowBulkAdd && findData.length > 1 && (
-									<span style={{ marginLeft: '8px' }}>
-										(Ctrl+Enter to add all)
-									</span>
-								)}
-							</div>
-						)}
-					</>
-				)}
-			</Grid>
+							{showItemCount && (
+								<div style={{ padding: '4px 12px', fontSize: '0.8em', opacity: 0.5, textAlign: 'right' }}>
+									{findData.length} item{findData.length !== 1 ? 's' : ''}
+									{enableKeyboardShortcuts && allowBulkAdd && findData.length > 1 && <span style={{ marginLeft: 8 }}>(⌘↩ to add all)</span>}
+								</div>
+							)}
+						</>
+					)}
+				</div>
+			)}
 
-			{/* Default Sanity input */}
-			<div style={{ marginTop: '-1px' }}>
+			{/* Default Sanity array input */}
+			<div style={{ marginTop: -1 }}>
 				{props.renderDefault(props)}
 			</div>
 		</Stack>
