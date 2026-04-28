@@ -14,7 +14,7 @@
  * - TypeScript support with proper types
  */
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { set, unset } from 'sanity'
 import { useFormValue } from 'sanity'
 
@@ -100,13 +100,17 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const [error, setError] = useState<string | null>(null)
 	const [isInputFocused, setIsInputFocused] = useState(false)
 
-	// Extract acceptable schema types from props
-	const schemaTypes: string[] = []
-	props.schemaType.of.forEach((type) => {
-		type.to.forEach((toType) => {
-			schemaTypes.push(toType.name)
+	// Memoize schema types — a new array reference every render would cause searchForItems
+	// to be recreated every render, retriggering the debounced effect infinitely
+	const schemaTypes = useMemo(() => {
+		const types: string[] = []
+		props.schemaType.of.forEach((type) => {
+			type.to.forEach((toType) => {
+				types.push(toType.name)
+			})
 		})
-	})
+		return types
+	}, [props.schemaType])
 
 	/**
 	 * Searches for items matching the search value within allowed schema types
