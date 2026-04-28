@@ -17,7 +17,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { set, unset } from 'sanity'
 import { useFormValue } from 'sanity'
-import groq from 'groq'
 
 // UI Components
 import { Text, TextInput, Stack, Grid, Button, Select, Spinner, Flex } from '@sanity/ui'
@@ -88,8 +87,6 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 		showItemCount = true,
 		enableKeyboardShortcuts = true
 	} = props
-	const id = useFormValue(['_id'])
-
 	// Component states
 	const [dangerMode, setDangerMode] = useState(false)
 	const [findValue, setFindValue] = useState('')
@@ -101,6 +98,7 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const [alreadySorted, setAlreadySorted] = useState(false)
 	const [isSorting, setIsSorting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [isInputFocused, setIsInputFocused] = useState(false)
 
 	// Extract acceptable schema types from props
 	const schemaTypes: string[] = []
@@ -125,7 +123,8 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 
 		try {
 			const items = await client.fetch<SearchResult[]>(
-				groq`*[_type in ${JSON.stringify(schemaTypes)} && title match "${searchValue}*"][0...${maxSearchResults}]`
+				`*[_type in $types && title match $search][0...$limit]`,
+				{ types: schemaTypes, search: `${searchValue}*`, limit: maxSearchResults }
 			)
 
 			// Smart filtering: remove items that already exist in the reference array
@@ -284,12 +283,16 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	}
 
 	/**
-	 * Retrieves expanded data for sorting with enhanced error handling
+	 * Fetches expanded documents for the current reference array, preserving current order
 	 */
 	const getSortData = async (): Promise<any[]> => {
+		if (!value?.length) return []
 		try {
-			const query = await client.fetch(groq`*[_id match "${id}*"][0]{"data":${props.id}[]->}`)
-			return query?.data || []
+			const ids = value.map(ref => ref._ref).filter(Boolean)
+			const docs = await client.fetch(`*[_id in $ids]`, { ids })
+			return value
+				.map(ref => docs.find((d: any) => d._id === ref._ref))
+				.filter(Boolean)
 		} catch (error) {
 			console.error('Error fetching sort data:', error)
 			return []
@@ -370,6 +373,7 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 		if (!enableKeyboardShortcuts) return
 
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!isInputFocused) return
 			// Ctrl/Cmd + Enter to add all results
 			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && findData.length > 0) {
 				e.preventDefault()
@@ -384,7 +388,7 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 
 		document.addEventListener('keydown', handleKeyDown)
 		return () => document.removeEventListener('keydown', handleKeyDown)
-	}, [enableKeyboardShortcuts, findData, findValue, addAllReferences])
+	}, [enableKeyboardShortcuts, findData, findValue, addAllReferences, isInputFocused])
 
 	return (
 		<Stack style={{ position: 'relative' }}>
@@ -424,6 +428,8 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 							placeholder={searchPlaceholder}
 							value={findValue}
 							onChange={(e) => setFindValue((e.target as HTMLInputElement).value)}
+							onFocus={() => setIsInputFocused(true)}
+							onBlur={() => setIsInputFocused(false)}
 							style={{
 								maxWidth: !!(findValue === '' && value?.length) && (!dangerMode && !sortMode) ? 'calc(100% - 100px)' : '100%',
 							}}
