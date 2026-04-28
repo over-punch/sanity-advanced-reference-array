@@ -423,7 +423,7 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 						))}
 					</Select>
 				) : (
-					<Flex align="center" style={{ position: 'relative' }}>
+					<Flex align="center" style={{ position: 'relative', flex: 1 }}>
 						<TextInput
 							placeholder={searchPlaceholder}
 							value={findValue}
@@ -431,7 +431,8 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 							onFocus={() => setIsInputFocused(true)}
 							onBlur={() => setIsInputFocused(false)}
 							style={{
-								maxWidth: !!(findValue === '' && value?.length) && (!dangerMode && !sortMode) ? 'calc(100% - 100px)' : '100%',
+								width: '100%',
+								paddingRight: !!(findValue === '' && value?.length) && (!dangerMode && !sortMode) ? '104px' : undefined,
 							}}
 							disabled={isSearching}
 						/>
