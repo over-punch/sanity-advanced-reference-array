@@ -214,7 +214,7 @@ interface AdvancedRefArrayProps {
 
 ```bash
 # Clone the repository
-git clone https://github.com/quitequinn/sanity-advanced-reference-array.git
+git clone https://github.com/Liiift-Studio/sanity-advanced-reference-array.git
 
 # Install dependencies
 npm install
@@ -254,9 +254,9 @@ This component combines the best features from multiple implementations used in 
 ## 🔗 Links
 
 - [NPM Package](https://www.npmjs.com/package/@liiift-studio/sanity-advanced-reference-array)
-- [GitHub Repository](https://github.com/quitequinn/sanity-advanced-reference-array)
+- [GitHub Repository](https://github.com/Liiift-Studio/sanity-advanced-reference-array)
 - [Sanity.io](https://www.sanity.io/)
-- [Report Issues](https://github.com/quitequinn/sanity-advanced-reference-array/issues)
+- [Report Issues](https://github.com/Liiift-Studio/sanity-advanced-reference-array/issues)
 
 ---
 
