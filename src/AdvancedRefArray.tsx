@@ -106,9 +106,12 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 			}
 
 			try {
+				// Note: GROQ slice bounds must be literal integers — parameters like
+				// `[0...$limit]` fail validation, which silently broke search in v1.0.x.
+				// `maxSearchResults` is a typed number prop (default 50) so inlining is safe.
 				const items = await client.fetch<SearchResult[]>(
-					`*[_type in $types && title match $search][0...$limit]`,
-					{ types: schemaTypes, search: `${findValue}*`, limit: maxSearchResults }
+					`*[_type in $types && title match $search][0...${maxSearchResults}]`,
+					{ types: schemaTypes, search: `${findValue}*` }
 				)
 				if (cancelled) return
 
@@ -290,14 +293,18 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 						{sortDataList.map((item, i) => <option key={i} value={item}>{item}</option>)}
 					</Select>
 				) : (
-					<div style={{ position: 'relative', flex: 1 }}>
+					// When idle buttons (sort + lock) are visible, physically shrink the input wrapper
+					// by 100px (50px per button) so the absolutely-positioned buttons sit in their own
+					// space. Padding-only spacing left the <input> element overlapping the buttons,
+					// which captured the click events and made sort/delete unclickable.
+					<div style={{ position: 'relative', flex: 1, marginRight: showIdleButtons ? 100 : 0 }}>
 						<TextInput
 							placeholder={searchPlaceholder}
 							value={findValue}
 							onChange={(e) => setFindValue((e.target as HTMLInputElement).value)}
 							onFocus={() => setIsInputFocused(true)}
 							onBlur={() => setIsInputFocused(false)}
-							style={{ width: '100%', paddingRight: showIdleButtons ? 104 : isSearching ? 32 : undefined }}
+							style={{ width: '100%', paddingRight: isSearching ? 32 : undefined }}
 						/>
 						{isSearching && (
 							<div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
