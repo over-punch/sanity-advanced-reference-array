@@ -13,6 +13,9 @@ https://github.com/user-attachments/assets/bb53e81b-4475-4510-bd86-452b954e3d2c
 ## ✨ Features
 
 ### 🔍 **Smart Search**
+
+![Search mode — typing a query returns matching documents with click-to-add and bulk Add All](./screenshots/search-mode.png)
+
 - **Live GROQ queries** with debounced search
 - **Smart filtering** - automatically hides items already in your array
 - **Individual click-to-add** - click any search result to add it instantly
@@ -20,12 +23,18 @@ https://github.com/user-attachments/assets/bb53e81b-4475-4510-bd86-452b954e3d2c
 - **Keyboard shortcuts** - `Ctrl+Enter` to add all, `Escape` to clear search
 
 ### 🎯 **Dynamic Sorting**
+
+![Sort mode — pick any field on the referenced document to sort the array by, with ascending/descending toggle](./screenshots/sort-mode.png)
+
 - **Sort by any field** in your referenced documents
 - **Visual sort indicators** - see if your list is already sorted
 - **Toggle sort direction** - ascending/descending with one click
 - **Browser compatible** - works across all modern browsers
 
 ### 🛡️ **Safety & UX**
+
+![Danger mode — explicit Remove all confirmation prevents accidental bulk deletes](./screenshots/danger-mode.png)
+
 - **Danger mode** - prevents accidental bulk deletions
 - **Confirmation dialogs** for destructive operations
 - **Loading states** and error handling
@@ -41,13 +50,13 @@ https://github.com/user-attachments/assets/bb53e81b-4475-4510-bd86-452b954e3d2c
 ## 📦 Installation
 
 ```bash
-npm install sanity-advanced-reference-array
+npm install @liiift-studio/sanity-advanced-reference-array
 ```
 
 ## 🚀 Quick Start
 
 ```typescript
-import { AdvancedRefArray } from 'sanity-advanced-reference-array'
+import { AdvancedRefArray } from '@liiift-studio/sanity-advanced-reference-array'
 
 export default {
   name: 'myDocument',
@@ -244,7 +253,7 @@ This component combines the best features from multiple implementations used in 
 
 ## 🔗 Links
 
-- [NPM Package](https://www.npmjs.com/package/sanity-advanced-reference-array)
+- [NPM Package](https://www.npmjs.com/package/@liiift-studio/sanity-advanced-reference-array)
 - [GitHub Repository](https://github.com/quitequinn/sanity-advanced-reference-array)
 - [Sanity.io](https://www.sanity.io/)
 - [Report Issues](https://github.com/quitequinn/sanity-advanced-reference-array/issues)
