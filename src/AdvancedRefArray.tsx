@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { set, unset } from 'sanity'
+import { set, unset, useFormValue } from 'sanity'
 import { Text, TextInput, Stack, Button, Select, Spinner } from '@sanity/ui'
 import { AccessDeniedIcon, SortIcon, LockIcon } from '@sanity/icons'
 import { useSanityClient } from './hooks/useSanityClient'
@@ -42,12 +42,17 @@ interface AdvancedRefArrayProps {
 	searchPlaceholder?: string
 	showItemCount?: boolean
 	enableKeyboardShortcuts?: boolean
+	/** Additional GROQ condition appended to the search query with && */
+	filterGroq?: string
+	/** Returns extra GROQ params derived from the current document */
+	filterParams?: (document: any) => Record<string, any>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const client = useSanityClient()
+	const currentDocument = useFormValue([]) as any
 	const {
 		onChange,
 		value,
@@ -58,6 +63,8 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 		maxSearchResults = 50,
 		showItemCount = true,
 		enableKeyboardShortcuts = true,
+		filterGroq,
+		filterParams,
 	} = props
 
 	const [dangerMode, setDangerMode] = useState(false)
@@ -74,9 +81,9 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 
 	// Refs that always hold the latest values — used inside the debounced search
 	// so the effect never needs to re-run due to prop/state changes other than findValue
-	const latestRef = useRef({ client, value, filterExisting, maxSearchResults, schemaType: props.schemaType })
+	const latestRef = useRef({ client, value, filterExisting, maxSearchResults, schemaType: props.schemaType, filterGroq, filterParams, document: currentDocument })
 	useEffect(() => {
-		latestRef.current = { client, value, filterExisting, maxSearchResults, schemaType: props.schemaType }
+		latestRef.current = { client, value, filterExisting, maxSearchResults, schemaType: props.schemaType, filterGroq, filterParams, document: currentDocument }
 	})
 
 	// ─── Search — only re-fires when the query text changes ──────────────────
@@ -95,7 +102,7 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 			if (cancelled) return
 			setIsSearching(true)
 
-			const { client, value, filterExisting, maxSearchResults, schemaType } = latestRef.current
+			const { client, value, filterExisting, maxSearchResults, schemaType, filterGroq, filterParams, document } = latestRef.current
 
 			const schemaTypes: string[] = []
 			schemaType.of.forEach((type) => type.to.forEach((t) => schemaTypes.push(t.name)))
@@ -105,13 +112,18 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 				return
 			}
 
+			// Optional document-scoped filtering: append a caller-supplied GROQ condition
+			// and any extra params derived from the current document.
+			const groqFilter = filterGroq ? ` && ${filterGroq}` : ''
+			const extraParams = filterParams ? filterParams(document) : {}
+
 			try {
 				// Note: GROQ slice bounds must be literal integers — parameters like
 				// `[0...$limit]` fail validation, which silently broke search in v1.0.x.
 				// `maxSearchResults` is a typed number prop (default 50) so inlining is safe.
 				const items = await client.fetch<SearchResult[]>(
-					`*[_type in $types && title match $search][0...${maxSearchResults}]`,
-					{ types: schemaTypes, search: `${findValue}*` }
+					`*[_type in $types && title match $search${groqFilter}][0...${maxSearchResults}]`,
+					{ types: schemaTypes, search: `${findValue}*`, ...extraParams }
 				)
 				if (cancelled) return
 
