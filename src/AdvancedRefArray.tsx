@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { set, unset, useFormValue } from 'sanity'
 import { Text, TextInput, Stack, Button, Select, Spinner } from '@sanity/ui'
-import { AccessDeniedIcon, SortIcon, LockIcon } from '@sanity/icons'
+import { AccessDeniedIcon, SortIcon, LockIcon, ChevronDownIcon, ChevronRightIcon } from '@sanity/icons'
 import { useSanityClient } from './hooks/useSanityClient'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,6 +27,11 @@ interface SchemaType {
 	of: Array<{
 		to: Array<{ name: string }>
 	}>
+	options?: {
+		collapsibleList?: boolean
+		collapseThreshold?: number
+		[key: string]: any
+	}
 }
 
 interface AdvancedRefArrayProps {
@@ -46,6 +51,10 @@ interface AdvancedRefArrayProps {
 	filterGroq?: string
 	/** Returns extra GROQ params derived from the current document */
 	filterParams?: (document: any) => Record<string, any>
+	/** Enable the collapse/expand toggle for the rendered reference list (default true) */
+	collapsibleList?: boolean
+	/** Auto-collapse the list once it exceeds this many items; below it the list stays expanded (default 20) */
+	collapseThreshold?: number
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -67,6 +76,12 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 		filterParams,
 	} = props
 
+	// Collapse config resolves in order: explicit prop → schema `options` → default.
+	// Reading from schemaType.options lets a field tune the threshold without code changes.
+	const schemaOptions = props.schemaType?.options || {}
+	const collapsibleList = props.collapsibleList ?? schemaOptions.collapsibleList ?? true
+	const collapseThreshold = props.collapseThreshold ?? schemaOptions.collapseThreshold ?? 20
+
 	const [dangerMode, setDangerMode] = useState(false)
 	const [findValue, setFindValue] = useState('')
 	const [findData, setFindData] = useState<SearchResult[]>([])
@@ -78,6 +93,10 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	const [isSorting, setIsSorting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [isInputFocused, setIsInputFocused] = useState(false)
+	// Tracks an explicit user expand while the list is over the collapse threshold.
+	// Derived collapse state (below) combines this with the item count, so no effect
+	// is needed to react to items being added or removed.
+	const [userExpanded, setUserExpanded] = useState(false)
 
 	// Refs that always hold the latest values — used inside the debounced search
 	// so the effect never needs to re-run due to prop/state changes other than findValue
@@ -283,6 +302,12 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 	// Show sort+lock buttons: idle state with existing refs and no active search
 	const showIdleButtons = hasItems && !hasSearch && !dangerMode && !sortMode
 
+	// Collapse only kicks in once the list exceeds the threshold; shorter lists always show.
+	const itemCount = value?.length || 0
+	const canCollapse = collapsibleList && itemCount > collapseThreshold
+	const listCollapsed = canCollapse && !userExpanded
+	const ToggleIcon = listCollapsed ? ChevronRightIcon : ChevronDownIcon
+
 	// ─── Render ───────────────────────────────────────────────────────────────
 
 	return (
@@ -414,10 +439,33 @@ export const AdvancedRefArray: React.FC<AdvancedRefArrayProps> = (props) => {
 				</div>
 			)}
 
-			{/* Default Sanity array input */}
-			<div style={{ marginTop: -1 }}>
-				{props.renderDefault(props)}
-			</div>
+			{/* Collapse toggle — only shown once the list passes the threshold.
+			    Layout lives inside the text node: icon pinned far-left, label centered
+			    across the full width, with a spacer balancing the icon so the label
+			    stays truly centered. */}
+			{canCollapse && (
+				<Button
+					mode="bleed"
+					onClick={() => setUserExpanded(v => !v)}
+					style={{ width: '100%', marginTop: 4 }}
+					text={
+						<span style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+							<ToggleIcon style={{ flexShrink: 0 }} />
+							<span style={{ flex: 1, textAlign: 'center' }}>
+								{listCollapsed ? `Show ${itemCount} items` : `Hide ${itemCount} items`}
+							</span>
+							<span aria-hidden style={{ width: '1em', flexShrink: 0 }} />
+						</span>
+					}
+				/>
+			)}
+
+			{/* Default Sanity array input — hidden while collapsed */}
+			{!listCollapsed && (
+				<div style={{ marginTop: -1 }}>
+					{props.renderDefault(props)}
+				</div>
+			)}
 		</Stack>
 	)
 }
