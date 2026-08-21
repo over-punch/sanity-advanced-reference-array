@@ -4,8 +4,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { set, unset, useFormValue } from 'sanity'
-import { Text, TextInput, Stack, Button, Select, Spinner } from '@sanity/ui'
-import { AccessDeniedIcon, SortIcon, LockIcon, ChevronDownIcon, ChevronRightIcon } from '@sanity/icons'
+import { Text, TextInput, Stack, Button, Select, Spinner } from '@liiift-studio/sanity-ui-compat'
+import { AccessDeniedIcon, SortIcon, LockIcon, ChevronDownIcon, ChevronRightIcon } from '@liiift-studio/sanity-ui-compat/icons'
 import { useSanityClient } from './hooks/useSanityClient'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
