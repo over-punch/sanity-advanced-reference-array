@@ -1,6 +1,6 @@
 {
   "name": "@liiift-studio/sanity-advanced-reference-array",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "description": "Enhanced reference array component for Sanity Studio with search, sort, and bulk operations",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -62,6 +62,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@liiift-studio/sanity-ui-compat": "^0.1.0"
+    "@liiift-studio/sanity-ui-compat": "^0.1.2"
   }
 }
