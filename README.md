@@ -1,7 +1,7 @@
 # Sanity Advanced Reference Array
 
-[![npm version](https://img.shields.io/npm/v/@liiift-studio/sanity-advanced-reference-array.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-advanced-reference-array)
-[![license: MIT](https://img.shields.io/npm/l/@liiift-studio/sanity-advanced-reference-array.svg)](#-license)
+[![npm version](https://img.shields.io/npm/v/@overpunch/sanity-advanced-reference-array.svg)](https://www.npmjs.com/package/@overpunch/sanity-advanced-reference-array)
+[![license: MIT](https://img.shields.io/npm/l/@overpunch/sanity-advanced-reference-array.svg)](#-license)
 [![sanity: v3 – v6](https://img.shields.io/badge/sanity-v3%20%E2%80%93%20v6-f03e2f.svg)](#-compatibility)
 
 🚀 **Enhanced reference array component for Sanity Studio with search, sort, and bulk operations**
@@ -56,7 +56,7 @@ https://github.com/user-attachments/assets/bb53e81b-4475-4510-bd86-452b954e3d2c
 ## 📦 Installation
 
 ```bash
-npm install @liiift-studio/sanity-advanced-reference-array
+npm install @overpunch/sanity-advanced-reference-array
 ```
 
 Peer dependencies (`sanity`, `react`, `@sanity/ui`, `@sanity/icons`) are already present in any Sanity Studio — see [Compatibility](#-compatibility).
@@ -67,7 +67,7 @@ Attach the component as the `input` for an array of references. No configuration
 
 ```typescript
 import { defineType, defineField } from 'sanity'
-import { AdvancedRefArray } from '@liiift-studio/sanity-advanced-reference-array'
+import { AdvancedRefArray } from '@overpunch/sanity-advanced-reference-array'
 
 export const myDocument = defineType({
   name: 'myDocument',
@@ -129,7 +129,7 @@ Wrap the component to bind props, then use the wrapper as your `input`:
 
 ```typescript
 import { defineType, defineField } from 'sanity'
-import { AdvancedRefArray } from '@liiift-studio/sanity-advanced-reference-array'
+import { AdvancedRefArray } from '@overpunch/sanity-advanced-reference-array'
 
 // Bind options once, reuse across fields
 const CuratedRefArray = (props) => (
@@ -204,7 +204,7 @@ const FontsRefArray = (props) => (
 )
 ```
 
-This is exactly how [`@liiift-studio/sanity-font-manager`](https://www.npmjs.com/package/@liiift-studio/sanity-font-manager) scopes its font pickers.
+This is exactly how [`@overpunch/sanity-font-manager`](https://www.npmjs.com/package/@overpunch/sanity-font-manager) scopes its font pickers.
 
 ### How search and sort actually resolve fields
 
@@ -270,20 +270,20 @@ defineField({
 
 ## 🔗 Relationship to `sanity-font-manager`
 
-This package is a **required peer dependency** of [`@liiift-studio/sanity-font-manager`](https://www.npmjs.com/package/@liiift-studio/sanity-font-manager) (declared as `">=1"`).
+This package is a **required peer dependency** of [`@overpunch/sanity-font-manager`](https://www.npmjs.com/package/@overpunch/sanity-font-manager) (declared as `">=1"`).
 
 `sanity-font-manager` imports `AdvancedRefArray` at the top level of its `createStylesField` schema module, which its package entry re-exports. That is a **static ESM import**, so if this package is not installed, importing *anything* from `sanity-font-manager` throws at module load — the failure looks like a Studio that will not boot, not a missing-feature warning.
 
 ```mermaid
 flowchart LR
-    FM["@liiift-studio/sanity-font-manager"] -->|"peer >=1 · static import<br/>in createStylesField"| ARA["@liiift-studio/<br/>sanity-advanced-reference-array"]
+    FM["@overpunch/sanity-font-manager"] -->|"peer >=1 · static import<br/>in createStylesField"| ARA["@overpunch/<br/>sanity-advanced-reference-array"]
     ARA -->|"renders the styles /<br/>collections pickers"| ST["Studio typeface document"]
 ```
 
 If you use the font manager, install both:
 
 ```bash
-npm install @liiift-studio/sanity-font-manager @liiift-studio/sanity-advanced-reference-array
+npm install @overpunch/sanity-font-manager @overpunch/sanity-advanced-reference-array
 ```
 
 This package is also useful entirely on its own — it has no dependency on the font manager.
@@ -306,7 +306,7 @@ The peer ranges look inconsistent at a glance, so here is the reasoning:
 - **`@sanity/ui` v4 moved components to subpath entries.** `Tooltip`, `Menu`, `MenuButton`, `MenuItem`, `Code`, `Popover`, `Autocomplete`, `Toast` and `useToast` are no longer on the package root.
 - **`@sanity/icons` v5 removed every named `*Icon` export.**
 - **Both still *declare* the removed names in their `.d.ts`, typed `never`.** A named import therefore type-checks, compiles, and only then fails at runtime — the breakage is invisible to `tsc` and to a green build.
-- **So this package imports no `@sanity/ui` or `@sanity/icons` symbol directly.** Everything routes through [`@liiift-studio/sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat) (a real runtime dependency, installed for you), which resolves the installed namespace at runtime and works against either layout.
+- **So this package imports no `@sanity/ui` or `@sanity/icons` symbol directly.** Everything routes through [`@overpunch/sanity-ui-compat`](https://www.npmjs.com/package/@overpunch/sanity-ui-compat) (a real runtime dependency, installed for you), which resolves the installed namespace at runtime and works against either layout.
 
 **The `@sanity/ui` peer is `>=2 <5`, and that is correct for Sanity v6** — Studio v6 ships `@sanity/ui` **v4**, not v5. It is not a stale upper bound.
 
@@ -366,10 +366,10 @@ This component combines the best features from multiple implementations used in 
 
 ## 🔗 Links
 
-- [NPM Package](https://www.npmjs.com/package/@liiift-studio/sanity-advanced-reference-array)
+- [NPM Package](https://www.npmjs.com/package/@overpunch/sanity-advanced-reference-array)
 - [GitHub Repository](https://github.com/Liiift-Studio/sanity-advanced-reference-array)
-- [`@liiift-studio/sanity-font-manager`](https://www.npmjs.com/package/@liiift-studio/sanity-font-manager) - depends on this package
-- [`@liiift-studio/sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat) - the v3–v6 compatibility layer
+- [`@overpunch/sanity-font-manager`](https://www.npmjs.com/package/@overpunch/sanity-font-manager) - depends on this package
+- [`@overpunch/sanity-ui-compat`](https://www.npmjs.com/package/@overpunch/sanity-ui-compat) - the v3–v6 compatibility layer
 - [Sanity.io](https://www.sanity.io/)
 - [Report Issues](https://github.com/Liiift-Studio/sanity-advanced-reference-array/issues)
 

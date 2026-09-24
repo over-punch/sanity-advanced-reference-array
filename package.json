@@ -1,5 +1,5 @@
 {
-  "name": "@liiift-studio/sanity-advanced-reference-array",
+  "name": "@overpunch/sanity-advanced-reference-array",
   "version": "1.1.1",
   "description": "Enhanced reference array component for Sanity Studio with search, sort, and bulk operations",
   "main": "dist/index.js",
@@ -62,6 +62,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@liiift-studio/sanity-ui-compat": "^0.1.2"
+    "@overpunch/sanity-ui-compat": "^0.1.2"
   }
 }
