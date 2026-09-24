@@ -16,8 +16,8 @@ export default {
     '@sanity/ui',
     '@sanity/icons',
     // Matched as exact module ids, so the compat's /icons subpath needs its own entry
-    '@liiift-studio/sanity-ui-compat',
-    '@liiift-studio/sanity-ui-compat/icons',
+    '@overpunch/sanity-ui-compat',
+    '@overpunch/sanity-ui-compat/icons',
     'groq'
   ],
   output: [
