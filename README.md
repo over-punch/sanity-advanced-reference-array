@@ -312,7 +312,7 @@ The peer ranges look inconsistent at a glance, so here is the reasoning:
 
 ### Verification status
 
-v3 – v6 support is established by the declared peer ranges, green builds, and the runtime-resolving compat layer. Beyond that, this component has been exercised in **three in-house Studios**. It has **not** been broadly tested in a running Sanity 6 Studio outside those. Please [open an issue](https://github.com/Liiift-Studio/sanity-advanced-reference-array/issues) if you hit a version-specific problem.
+v3 – v6 support is established by the declared peer ranges, green builds, and the runtime-resolving compat layer. Beyond that, this component has been exercised in **three in-house Studios**. It has **not** been broadly tested in a running Sanity 6 Studio outside those. Please [open an issue](https://github.com/over-punch/sanity-advanced-reference-array/issues) if you hit a version-specific problem.
 
 ### Packaging
 
@@ -327,7 +327,7 @@ v3 – v6 support is established by the declared peer ranges, green builds, and 
 
 ```bash
 # Clone the repository
-git clone https://github.com/Liiift-Studio/sanity-advanced-reference-array.git
+git clone https://github.com/over-punch/sanity-advanced-reference-array.git
 
 # Install dependencies
 npm install
@@ -367,11 +367,11 @@ This component combines the best features from multiple implementations used in 
 ## 🔗 Links
 
 - [NPM Package](https://www.npmjs.com/package/@overpunch/sanity-advanced-reference-array)
-- [GitHub Repository](https://github.com/Liiift-Studio/sanity-advanced-reference-array)
+- [GitHub Repository](https://github.com/over-punch/sanity-advanced-reference-array)
 - [`@overpunch/sanity-font-manager`](https://www.npmjs.com/package/@overpunch/sanity-font-manager) - depends on this package
 - [`@overpunch/sanity-ui-compat`](https://www.npmjs.com/package/@overpunch/sanity-ui-compat) - the v3–v6 compatibility layer
 - [Sanity.io](https://www.sanity.io/)
-- [Report Issues](https://github.com/Liiift-Studio/sanity-advanced-reference-array/issues)
+- [Report Issues](https://github.com/over-punch/sanity-advanced-reference-array/issues)
 
 ---
 
